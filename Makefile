@@ -1,6 +1,10 @@
-all:	train test predict summary libnn.so
+CC=gcc
+CFLAGS=-g -Wall -march=native -flto -fPIC
+LDFLAGS=-lm
+QUANTIZE_DIR=quantizing
+INCLUDES=-I.
 
-CFLAGS=-g # -Ofast
+all: train test predict summary libnn.so quantize
 
 libnn.so: nn.o data_prep.o
 	$(RM) $@
@@ -25,6 +29,12 @@ predict: predict.c nn.o
 summary: summary.c nn.o
 	$(CC) -Wall summary.c nn.o -o summary -lm -march=native $(CFLAGS)
 
+quantize: $(QUANTIZE_DIR)/quantize.o nn.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(QUANTIZE_DIR)/quantize.o: $(QUANTIZE_DIR)/quantize.c $(QUANTIZE_DIR)/quantize.h nn.h
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
 tags:
 	ctags -R *
 
@@ -33,4 +43,4 @@ check:
 
 clean:
 	$(RM) data_prep.o nn.o libnn.so train test predict summary model.txt tags nn.png
-	$(RM) -r __pycache__
+	$(RM) -r **pycache**
