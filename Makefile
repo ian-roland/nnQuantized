@@ -42,5 +42,5 @@ check:
 	cppcheck --enable=all --inconclusive .
 
 clean:
-	$(RM) data_prep.o nn.o libnn.so train test predict summary model.txt tags nn.png
+	$(RM) data_prep.o nn.o libnn.so train test predict summary model.txt tags nn.png quantize quantized_model.txt
 	$(RM) -r **pycache**

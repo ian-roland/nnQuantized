@@ -10,7 +10,7 @@
 #include "nn.h"
 #include "data_prep.h"
 
-int main(void)
+int main(int argc, char *argv[])
 {
 	nn_t *model;
 	data_t *data;
@@ -20,10 +20,15 @@ int main(void)
 	int true_positive;
 	int false_positive;
 
+	if (argc < 2 ) {
+		printf("Usage: %s <model_file>\n", argv[0]);
+		return 1;
+	}
+
 	// Recall a previously trained neural network model, inclusive of its weights
 	model = nn_load("model.txt");
 	if (NULL == model) {
-		printf("Error: Missing or invalid model file.\n");
+		printf("Error: Missing or invalid model file: %s\n", argv[1]);
 		return 1;
 	}
 	// Load training data into a data structure in memory
