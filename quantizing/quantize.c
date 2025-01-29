@@ -132,27 +132,6 @@ nn_quantized_t* nn_quantize(nn_t* network, quantization_method_t method, int bit
     return quantized;
 }
 
-void nn_free_quantized(nn_quantized_t* quantized_network) {
-    if (!quantized_network) return;
-
-    for (int layer = 1; layer < quantized_network->original_network->depth; layer++) {
-        int curr_width = quantized_network->original_network->width[layer];
-        
-        for (int neuron = 0; neuron < curr_width; neuron++) {
-            free(quantized_network->quantized_weights[layer][neuron]);
-        }
-        free(quantized_network->quantized_weights[layer]);
-        free(quantized_network->weight_scales[layer]);
-        free(quantized_network->quantized_biases[layer]);
-    }
-
-    free(quantized_network->quantized_weights);
-    free(quantized_network->weight_scales);
-    free(quantized_network->quantized_biases);
-    free(quantized_network->bias_scales);
-    free(quantized_network);
-}
-
 int nn_save_quantized(nn_quantized_t* quantized_network, const char* path) {
     if (!quantized_network || !path) return -1;
 

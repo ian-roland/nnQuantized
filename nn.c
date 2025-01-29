@@ -388,6 +388,27 @@ int nn_save(nn_t *nn, char *path)
 	return 0;
 }
 
+void nn_free_quantized(nn_quantized_t* quantized_network) {
+    if (!quantized_network) return;
+
+    for (int layer = 1; layer < quantized_network->original_network->depth; layer++) {
+        int curr_width = quantized_network->original_network->width[layer];
+        
+        for (int neuron = 0; neuron < curr_width; neuron++) {
+            free(quantized_network->quantized_weights[layer][neuron]);
+        }
+        free(quantized_network->quantized_weights[layer]);
+        free(quantized_network->weight_scales[layer]);
+        free(quantized_network->quantized_biases[layer]);
+    }
+
+    free(quantized_network->quantized_weights);
+    free(quantized_network->weight_scales);
+    free(quantized_network->quantized_biases);
+    free(quantized_network->bias_scales);
+    free(quantized_network);
+}
+
 uint32_t nn_version(void)
 {
 	return (NN_VERSION_MAJOR << 24) | (NN_VERSION_MINOR << 16) | (NN_VERSION_PATCH << 8) | NN_VERSION_BUILD;
