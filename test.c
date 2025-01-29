@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Recall a previously trained neural network model, inclusive of its weights
-	model = nn_load("model.txt");
+	model = nn_load(argv[1]);
 	if (NULL == model) {
 		printf("Error: Missing or invalid model file: %s\n", argv[1]);
 		return 1;
