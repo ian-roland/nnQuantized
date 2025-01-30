@@ -25,9 +25,10 @@ typedef struct {
 } quantization_error_t;
 
 // Function declarations
+void print_usage();
 nn_quantized_t* nn_quantize(nn_t* network, quantization_method_t method, int bit_depth);
 int nn_save_quantized(nn_quantized_t* quantized_network, const char* path);
-float* nn_predict_quantized(nn_quantized_t* quantized_network, float* inputs);
+float* nn_predict_quantized(nn_quantized_t* qmodel, float* input);
 quantization_error_t nn_analyze_quantization_error(nn_t* original_network, nn_quantized_t* quantized_network);
 
-#endif /* QUANTIZE_H */
+#endif /* QUANTIZE_H */ 
