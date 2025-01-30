@@ -57,6 +57,7 @@ nn_t *nn_load(char *path);
 nn_quantized_t* nn_load_quantized(const char* path);
 float nn_train(nn_t *nn, float *inputs, float *targets, float rate);
 float *nn_predict(nn_t *nn, float *inputs);
+float activate(float value, int activation_type);
 uint32_t nn_version(void);
 
 #endif /* NN_H */
