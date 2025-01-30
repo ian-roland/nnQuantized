@@ -4,54 +4,12 @@
 #include <math.h>
 #include <stdint.h>
 #include "quantize.h"
+#include "../nn.h"
 
 void print_usage() {
     printf("Usage: quantize <input_model> <output_model>\n");
     printf("  input_model: path to the floating-point neural network model\n");
     printf("  output_model: path where to save the quantized model\n");
-}
-
-int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        print_usage();
-        return 1;
-    }
-
-    char* input_model = argv[1];
-    char* output_model = argv[2];
-    
-    // Load the original network
-    nn_t* network = nn_load(input_model);
-    if (!network) {
-        fprintf(stderr, "Failed to load input model: %s\n", input_model);
-        return 1;
-    }
-
-    // Quantize the network (using symmetric 8-bit quantization)
-    nn_quantized_t* quantized = nn_quantize(network, QUANTIZATION_METHOD_SYMMETRIC, 8);
-    if (!quantized) {
-        fprintf(stderr, "Failed to quantize network\n");
-        nn_free(network);
-        return 1;
-    }
-
-    // Save the quantized network
-    if (nn_save_quantized(quantized, output_model) != 0) {
-        fprintf(stderr, "Failed to save quantized model: %s\n", output_model);
-        nn_free_quantized(quantized);
-        nn_free(network);
-        return 1;
-    }
-
-    printf("Successfully quantized model:\n");
-    printf("  Input: %s\n", input_model);
-    printf("  Output: %s\n", output_model);
-
-    // Clean up
-    nn_free_quantized(quantized);
-    nn_free(network);
-    
-    return 0;
 }
 
 // Helper function to find min and max values in a layer
@@ -139,11 +97,11 @@ int nn_save_quantized(nn_quantized_t* quantized_network, const char* path) {
     if (!file) return -1;
 
     nn_t* network = quantized_network->original_network;
-    
+
     // Save network architecture
     fprintf(file, "%d\n", network->depth);
     for (int i = 0; i < network->depth; i++) {
-        fprintf(file, "%d %d\n", network->width[i], network->activation[i]);
+        fprintf(file, "%d %d %f\n", network->width[i], network->activation[i], network->bias[i]);
     }
 
     // Save quantized weights and scales
@@ -169,7 +127,39 @@ int nn_save_quantized(nn_quantized_t* quantized_network, const char* path) {
     return 0;
 }
 
-float* nn_predict_quantized(nn_quantized_t* quantized_network, float* inputs) {
-    // This is a placeholder - implement the actual quantized prediction logic
-    return NULL;
+float* nn_predict_quantized(nn_quantized_t* qmodel, float* input) {
+    if (!qmodel || !input) return NULL;
+
+    nn_t* original = qmodel->original_network;
+    int depth = original->depth;
+    float* activations = malloc(sizeof(float) * original->width[0]);
+    memcpy(activations, input, sizeof(float) * original->width[0]);
+
+    for (int layer = 1; layer < depth; layer++) {
+        int curr_width = original->width[layer];
+        float* new_activations = malloc(sizeof(float) * curr_width);
+
+        for (int neuron = 0; neuron < curr_width; neuron++) {
+            // Dequantize weights and compute dot product
+            float sum = 0.0f;
+            for (int w = 0; w < original->width[layer-1]; w++) {
+                float weight = qmodel->quantized_weights[layer][neuron][w] * 
+                              qmodel->weight_scales[layer][neuron];
+                sum += weight * activations[w];
+            }
+
+            // Dequantize bias
+            float bias = qmodel->quantized_biases[layer][neuron] * 
+                        qmodel->bias_scales[layer];
+            sum += bias;
+
+            // Apply activation
+            new_activations[neuron] = activate(sum, original->activation[layer]);
+        }
+
+        free(activations);
+        activations = new_activations;
+    }
+
+    return activations;
 }
