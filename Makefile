@@ -1,46 +1,41 @@
 CC=gcc
-CFLAGS=-g -Wall -march=native -flto -fPIC
+CFLAGS=-g -Wall -march=native -flto -fPIC -I. -Iquantizing
 LDFLAGS=-lm
 QUANTIZE_DIR=quantizing
-INCLUDES=-I.
 
 all: train test predict summary libnn.so quantize
 
 libnn.so: nn.o data_prep.o
-	$(RM) $@
-	$(AR) rcs $@ nn.o data_prep.o
-	$(CC) -shared -Wl,-o libnn.so *.o
+	$(CC) -shared -Wl,-soname,libnn.so -o $@ $^ $(LDFLAGS)
 
 data_prep.o: data_prep.c data_prep.h
-	$(CC) -Wall data_prep.c -c -march=native -flto $(CFLAGS) -fPIC
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 nn.o: nn.c nn.h
-	$(CC) -Wall nn.c -c -march=native -flto $(CFLAGS) -fPIC
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 train: train.c nn.o data_prep.o
-	$(CC) -Wall train.c data_prep.o nn.o -o train -lm -march=native $(CFLAGS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-test: test.c nn.o data_prep.o
-	$(CC) -Wall test.c data_prep.o nn.o -o test -lm -march=native $(CFLAGS)
+test: test.c nn.o data_prep.o $(QUANTIZE_DIR)/quantize.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 predict: predict.c nn.o
-	$(CC) -Wall predict.c nn.o -o predict -lm -march=native $(CFLAGS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 summary: summary.c nn.o
-	$(CC) -Wall summary.c nn.o -o summary -lm -march=native $(CFLAGS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-quantize: $(QUANTIZE_DIR)/quantize.o nn.o
+quantize: $(QUANTIZE_DIR)/quantize_main.o $(QUANTIZE_DIR)/quantize.o nn.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 $(QUANTIZE_DIR)/quantize.o: $(QUANTIZE_DIR)/quantize.c $(QUANTIZE_DIR)/quantize.h nn.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+	$(CC) $(CFLAGS) -c -o $@ $<
 
-tags:
-	ctags -R *
-
-check:
-	cppcheck --enable=all --inconclusive .
+$(QUANTIZE_DIR)/quantize_main.o: $(QUANTIZE_DIR)/quantize_main.c $(QUANTIZE_DIR)/quantize.h
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	$(RM) data_prep.o nn.o libnn.so train test predict summary model.txt tags nn.png quantize quantized_model.txt
-	$(RM) -r **pycache**
+	rm -f *.o $(QUANTIZE_DIR)/*.o libnn.so train test predict summary quantize model.txt quantized_model.txt
+
+.PHONY: all clean
