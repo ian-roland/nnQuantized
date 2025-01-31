@@ -75,18 +75,24 @@ nn_quantized_t* nn_quantize(nn_t* network, quantization_method_t method, int bit
             }
         }
 
-        // Quantize biases
-        float bias_min, bias_max;
-        find_layer_minmax(network->bias + layer, curr_width, &bias_min, &bias_max);
-        float bias_scale = (float)fmax(fabs(bias_min), fabs(bias_max)) / 127.0f;
+        // One bias per Neuron
+        float layer_bias = network->bias[layer];
+
+        // Calculate bias scale (handle zero bias case)
+        float max_bias_val = fabs(layer_bias);
+        float bias_scale = (max_bias_val < 1e-6f) ? 1.0f : (max_bias_val / 127.0f);
+
         quantized->bias_scales[layer] = bias_scale;
 
-        for (int neuron = 0; neuron < curr_width; neuron++) {
-            quantized->quantized_biases[layer][neuron] = 
-                quantize_value(network->bias[layer], bias_scale, 0.0f);
-        }
-    }
+        // Quantize the single bias value for the entire layer
+        int8_t quantized_bias = quantize_value(layer_bias, bias_scale, 0.0f);
 
+        // Assign same quantized bias to all neurons in this layer
+        for (int neuron = 0; neuron < curr_width; neuron++) {
+            quantized->quantized_biases[layer][neuron] = quantized_bias;
+        }
+        
+    }
     return quantized;
 }
 
