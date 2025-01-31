@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Train: %d/%d = %2.2f%%\n", correct, num_samples, (correct * 100.0) / num_samples);
-    printf("Is_quantized: %d\n", is_quantized);
+    //DEBUGGING PRINT -> printf("Is_quantized: %d\n", is_quantized);
     data_free(data);
 
     // Repeat for test data
@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Test: %d/%d = %2.2f%%\n", correct, num_samples, (correct * 100.0) / num_samples);
-    printf("Is_quantized: %d\n", is_quantized);
+    //DEBUGGING PRINT -> printf("Is_quantized: %d\n", is_quantized);
     data_free(data);
 
     // Cleanup
