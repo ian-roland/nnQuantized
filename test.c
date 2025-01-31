@@ -24,19 +24,25 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Load model (quantized or floating-point)
-    qmodel = nn_load_quantized(argv[1]);
-    if (!qmodel) {
+     int is_quantized = (strstr(argv[1], "quantized") != NULL);
+
+     if (is_quantized) {
+        qmodel = nn_load_quantized(argv[1]);
+        if (!qmodel) {
+            fprintf(stderr, "Error: Failed to load quantized model\n");
+            return 1;
+        }
+    } else {
         model = nn_load(argv[1]);
         if (!model) {
-            printf("Error: Invalid model file\n");
+            fprintf(stderr, "Error: Failed to load floating-point model\n");
             return 1;
         }
     }
 
     // Get input/output dimensions
     int input_size, output_size;
-    if (qmodel) {
+    if (is_quantized) {
         input_size = qmodel->original_network->width[0];
         output_size = qmodel->original_network->width[qmodel->original_network->depth - 1];
     } else {
@@ -51,7 +57,7 @@ int main(int argc, char *argv[]) {
 
     for (int i = 0; i < data->num_rows; i++) {
         num_samples++;
-        if (qmodel) {
+        if (is_quantized) {
             prediction = nn_predict_quantized(qmodel, data->input[i]);
         } else {
             prediction = nn_predict(model, data->input[i]);
@@ -70,6 +76,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Train: %d/%d = %2.2f%%\n", correct, num_samples, (correct * 100.0) / num_samples);
+    printf("Is_quantized: %d\n", is_quantized);
     data_free(data);
 
     // Repeat for test data
@@ -79,7 +86,7 @@ int main(int argc, char *argv[]) {
 
     for (int i = 0; i < data->num_rows; i++) {
         num_samples++;
-        if (qmodel) {
+        if (is_quantized) {
             prediction = nn_predict_quantized(qmodel, data->input[i]);
         } else {
             prediction = nn_predict(model, data->input[i]);
@@ -98,10 +105,11 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Test: %d/%d = %2.2f%%\n", correct, num_samples, (correct * 100.0) / num_samples);
+    printf("Is_quantized: %d\n", is_quantized);
     data_free(data);
 
     // Cleanup
-    if (qmodel) {
+    if (is_quantized) {
         nn_free_quantized(qmodel);
     } else {
         nn_free(model);
